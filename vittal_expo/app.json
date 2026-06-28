@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "vittal_expo",
+    "slug": "vittal_expo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "jsEngine": "hermes",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "defaultChannel": "default",
+      "package": "com.santiagoym.vittal_expo",
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#ffffff"
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "bluetoothAlwaysPermission": "Vittal usa Bluetooth para conectarse al Hello Watch 3+ y sincronizar signos vitales del paciente."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "23a689e5-bc91-4a6b-a68a-a8110150a442"
+      },
+      "EXPO_PUBLIC_SUPABASE_URL": "https://qtvanskodugfltfzerej.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0dmFuc2tvZHVnZmx0ZnplcmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzA3MDUsImV4cCI6MjA5NDc0NjcwNX0.bDq-WI5VkU8i2JUVGvEtPfkFRei4DLO2ZCNBRbw9po4",
+      "EXPO_PUBLIC_BACKEND_URL": "https://vittal-ozgu.onrender.com",
+      "EXPO_PUBLIC_EAS_PROJECT_ID": "23a689e5-bc91-4a6b-a68a-a8110150a442"
+    },
+    "owner": "santiagoym"
+  }
+}

@@ -224,6 +224,8 @@ async function sendNotificationToUsers(
         },
         sound: 'default',
         priority: 'high',
+        badge: 1,
+        ttl: 60 * 60,
         channelId: 'default',
       };
     })
@@ -343,6 +345,90 @@ app.post('/api/account/delete', clinicalLimiter, supabaseAuth, async (req, res, 
     if (error) return res.status(500).json({ status: 500, message: error.message });
 
     res.status(200).json({ success: true, statusCode: 200, message: 'Account deleted', timestamp: new Date().toISOString() });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post('/api/push/register', clinicalLimiter, supabaseAuth, async (req, res, next) => {
+  try {
+    const admin = getSupabaseAdmin();
+    if (!admin) return res.status(500).json({ status: 500, message: 'Supabase admin not configured' });
+    if (!req.appUser?.id) return res.status(401).json({ status: 401, message: 'Unauthorized' });
+
+    const expoPushToken = String(req.body?.expoPushToken || '').trim();
+    const platform = req.body?.platform ? String(req.body.platform).trim() : null;
+    if (!expoPushToken) {
+      return res.status(400).json({ status: 400, message: 'Missing expoPushToken' });
+    }
+
+    const { error: cleanupUserError } = await admin
+      .from('push_tokens')
+      .delete()
+      .eq('user_id', req.appUser.id)
+      .neq('expo_push_token', expoPushToken);
+    if (cleanupUserError) {
+      return res.status(500).json({ status: 500, message: cleanupUserError.message });
+    }
+
+    const { error: cleanupTokenError } = await admin
+      .from('push_tokens')
+      .delete()
+      .eq('expo_push_token', expoPushToken)
+      .neq('user_id', req.appUser.id);
+    if (cleanupTokenError) {
+      return res.status(500).json({ status: 500, message: cleanupTokenError.message });
+    }
+
+    const { data: existingRow, error: existingError } = await admin
+      .from('push_tokens')
+      .select('*')
+      .eq('user_id', req.appUser.id)
+      .eq('expo_push_token', expoPushToken)
+      .maybeSingle();
+    if (existingError) {
+      return res.status(500).json({ status: 500, message: existingError.message });
+    }
+
+    let row = existingRow || null;
+    if (row?.id) {
+      const { data: updatedRow, error: updateError } = await admin
+        .from('push_tokens')
+        .update({
+          platform,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', row.id)
+        .select('*')
+        .single();
+      if (updateError) {
+        return res.status(500).json({ status: 500, message: updateError.message });
+      }
+      row = updatedRow;
+    } else {
+      const { data: insertedRow, error: insertError } = await admin
+        .from('push_tokens')
+        .insert({
+          user_id: req.appUser.id,
+          expo_push_token: expoPushToken,
+          platform,
+          updated_at: new Date().toISOString(),
+        })
+        .select('*')
+        .single();
+      if (insertError) {
+        return res.status(500).json({ status: 500, message: insertError.message });
+      }
+      row = insertedRow;
+    }
+
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'Push token registered',
+      data: { row },
+      timestamp: new Date().toISOString(),
+    });
   } catch (e) {
     next(e);
   }

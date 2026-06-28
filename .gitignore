@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+!.env.example
+coverage/
+.DS_Store
+.expo/
+dist/
+build/
+*.log
+backend/node_modules/
+backend/coverage/
+backend/.env
+vittal_expo/node_modules/
+vittal_expo/.expo/
+vittal_expo/dist/
