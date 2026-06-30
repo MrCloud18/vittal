@@ -90,6 +90,7 @@ export function SmartwatchScreen({ navigation, route }: Props) {
   const [busy, setBusy] = useState(false);
   const [deviceLabel, setDeviceLabel] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [simulating, setSimulating] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [latest, setLatest] = useState<HelloWatchSnapshot>({});
   const [supportedMetrics, setSupportedMetrics] = useState<string[]>([]);
@@ -283,6 +284,61 @@ export function SmartwatchScreen({ navigation, route }: Props) {
 
   function registerMetric(metric: string) {
     setSupportedMetrics((prev) => (prev.includes(metric) ? prev : [...prev, metric]));
+  }
+
+  function randomInt(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function randomDecimal(min: number, max: number, precision = 1): number {
+    const value = Math.random() * (max - min) + min;
+    const factor = 10 ** precision;
+    return Math.round(value * factor) / factor;
+  }
+
+  function createMockSnapshot(): HelloWatchSnapshot {
+    const systolic = randomInt(108, 132);
+    const diastolic = randomInt(68, 86);
+    return {
+      heartRate: randomInt(64, 96),
+      oxygenLevel: randomInt(95, 99),
+      temperature: randomDecimal(36.2, 37.4, 1),
+      bloodPressure: `${systolic}/${diastolic}`,
+    };
+  }
+
+  async function simulateSmartwatchReading() {
+    setSimulating(true);
+    setErrorMessage(null);
+    try {
+      if (!backendUrl) {
+        throw new Error('Falta configurar EXPO_PUBLIC_BACKEND_URL para simular lecturas.');
+      }
+
+      setState('binding');
+      deviceTokenRef.current = await getOrCreateDeviceToken();
+
+      const mockSnapshot = createMockSnapshot();
+      latestRef.current = mockSnapshot;
+      setLatest(mockSnapshot);
+      setDeviceLabel('Simulador Hello Watch 3+');
+      setState('syncing');
+      registerMetric('Frecuencia cardiaca');
+      registerMetric('Oxígeno');
+      registerMetric('Temperatura');
+      registerMetric('Presión arterial');
+      appendLog(`Simulación local: ${summarizeSnapshot(mockSnapshot)}`);
+
+      await uploadLatestSnapshot();
+      appendLog('Lectura de prueba enviada al backend y a Supabase.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo generar la lectura de prueba.';
+      setState('error');
+      setErrorMessage(message);
+      appendLog(message);
+    } finally {
+      setSimulating(false);
+    }
   }
 
   function pushUniqueLine(
@@ -599,11 +655,20 @@ export function SmartwatchScreen({ navigation, route }: Props) {
               loading={busy}
             />
             <Button
+              label={simulating ? 'Simulando...' : 'Generar lectura de prueba'}
+              onPress={() => {
+                void simulateSmartwatchReading();
+              }}
+              disabled={busy || simulating}
+              loading={simulating}
+              variant="accent"
+            />
+            <Button
               label="Desconectar"
               onPress={() => {
                 void disconnect();
               }}
-              disabled={busy && state !== 'connected' && state !== 'syncing'}
+              disabled={(busy || simulating) && state !== 'connected' && state !== 'syncing'}
               variant="secondary"
             />
           </View>
@@ -638,6 +703,9 @@ export function SmartwatchScreen({ navigation, route }: Props) {
           )}
           <Text style={[styles.helper, { color: colors.muted }]}>
             Último envío al backend: {lastUploadAt ?? 'sin envíos todavía'}
+          </Text>
+          <Text style={[styles.helper, { color: colors.muted }]}>
+            Si aún no tienes el smartwatch físico, usa la simulación para poblar signos vitales reales en Supabase y validar ambos paneles.
           </Text>
         </Card>
 

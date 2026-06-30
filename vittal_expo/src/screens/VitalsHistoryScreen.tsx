@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { getVitalsHistory, VitalSign } from '../lib/supabase';
+import { getVitalsHistory, supabase, VitalSign } from '../lib/supabase';
 import { useTheme } from '../ui/theme';
 import { Card, EmptyState, TopBar } from '../ui/components';
 import { VitalsTrendChart } from '../ui/components/VitalsTrendChart';
@@ -39,6 +39,20 @@ export function VitalsHistoryScreen({
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`vitals-history-${patientId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vital_signs', filter: `patient_id=eq.${patientId}` }, () => {
+        void load(true);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId]);
 

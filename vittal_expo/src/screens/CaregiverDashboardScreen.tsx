@@ -81,6 +81,23 @@ export function CaregiverDashboardScreen({ navigation }: Props) {
     loadAll();
   }, []);
 
+  useEffect(() => {
+    if (!patientId) return;
+    const channel = supabase
+      .channel(`caregiver-dashboard-${patientId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vital_signs', filter: `patient_id=eq.${patientId}` }, () => {
+        void loadAll();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts', filter: `patient_id=eq.${patientId}` }, () => {
+        void loadAll();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [patientId]);
+
   async function onAcknowledge(alertId: string) {
     setBusyAlertId(alertId);
     const { error } = await acknowledgeAlert(alertId);
